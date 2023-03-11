@@ -1,22 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(gimli)
+project(gimli_root)
 
-add_executable(
-    gimli
-    src/main.c
-)
-
-set_target_properties(
-    gimli
-    PROPERTIES
-    C_STANDARD 99
-)
-
-target_compile_options(
-    gimli
-    PRIVATE
-    -Weverything
-    -Werror
-    -Wno-declaration-after-statement
-)
+add_subdirectory(gimli)

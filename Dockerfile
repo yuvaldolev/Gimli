@@ -10,7 +10,7 @@ RUN /app/build.sh
 
 FROM debian:bullseye
 
-COPY --from=builder /app/build/gimli /app/gimli
+COPY --from=builder /app/build/gimli/gimli /app/gimli
 
 WORKDIR /app
 
