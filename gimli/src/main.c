@@ -1,13 +1,16 @@
+#include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "cli.h"
+#include "layer_store.h"
 
 int main(int argc, const char *const argv[]) {
   int ret = 1;
 
   // Parse the command line arguments.
   Cli cli;
-  if (0 != cli_parse(&cli, argc, argv)) {
+  if (0 != cli_init(&cli, argc, argv)) {
     cli_print_usage(argv[0]);
     goto out;
   }
@@ -22,9 +25,18 @@ int main(int argc, const char *const argv[]) {
   }
   printf("]\n");
 
+  // Initialize the layer store.
+  /* LayerStore layer_store; */
+  /* if (0 != layer_store_init(&layer_store)) { */
+  /*   fprintf(stderr, "Failed initializing the layer store, error(%d): [%s]",
+   * errno, */
+  /*           strerror(errno)); */
+  /*   goto out_destroy_gimli_directory_accessor; */
+  /* } */
+
   ret = 0;
 
-  /* out_destroy_cli: */
+out_destroy_cli:
   cli_destroy(&cli);
 
 out:

@@ -4,7 +4,10 @@ project(gimli)
 
 add_executable(
     gimli
+    include/cli.h
+    include/gimli_directory_accessor.h
     src/cli.c
+    src/gimli_directory_accessor.c
     src/main.c
 )
 

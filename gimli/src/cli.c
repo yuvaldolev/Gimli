@@ -69,7 +69,7 @@ out:
   return ret;
 }
 
-int cli_parse(Cli *out_cli, int argc, const char *const argv[]) {
+int cli_init(Cli *self, int argc, const char *const argv[]) {
   int ret = 1;
 
   // Ensure that the correct number of arguments has been passed in.
@@ -78,7 +78,7 @@ int cli_parse(Cli *out_cli, int argc, const char *const argv[]) {
   }
 
   // Parse the image argument.
-  if (0 != parse_string_argument(argv[ARGUMENT_IMAGE], &out_cli->image)) {
+  if (0 != parse_string_argument(argv[ARGUMENT_IMAGE], &self->image)) {
     goto out;
   }
 
@@ -86,7 +86,7 @@ int cli_parse(Cli *out_cli, int argc, const char *const argv[]) {
   if (0 !=
       parse_string_array_argument(argv + ARGUMENT_FIRST_COMMAND_PART,
                                   (size_t)(argc - ARGUMENT_FIRST_COMMAND_PART),
-                                  &out_cli->command, &out_cli->command_size)) {
+                                  &self->command, &self->command_size)) {
     goto out_free_image;
   }
 
@@ -94,23 +94,23 @@ int cli_parse(Cli *out_cli, int argc, const char *const argv[]) {
   goto out;
 
 out_free_image:
-  free(out_cli->image);
-  out_cli->image = NULL;
+  free(self->image);
+  self->image = NULL;
 
 out:
   return ret;
 }
 
-void cli_destroy(Cli *cli) {
+void cli_destroy(Cli *self) {
   // Free the command.
-  for (size_t item_index = 0; item_index < cli->command_size; ++item_index) {
-    free(cli->command[item_index]);
+  for (size_t item_index = 0; item_index < self->command_size; ++item_index) {
+    free(self->command[item_index]);
   }
 
-  free(cli->command);
+  free(self->command);
 
   // Free the image.
-  free(cli->image);
+  free(self->image);
 }
 
 void cli_print_usage(const char *program) {
