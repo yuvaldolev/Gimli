@@ -5,9 +5,15 @@ project(gimli)
 add_executable(
     gimli
     include/cli.h
-    include/gimli_directory_accessor.h
+    include/gimli_directory.h
+    include/io.h
+    include/layer.h
+    include/layer_store.h
     src/cli.c
-    src/gimli_directory_accessor.c
+    src/gimli_directory.c
+    src/io.c
+    src/layer.c
+    src/layer_store.c
     src/main.c
 )
 

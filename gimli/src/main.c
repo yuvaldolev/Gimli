@@ -26,13 +26,12 @@ int main(int argc, const char *const argv[]) {
   printf("]\n");
 
   // Initialize the layer store.
-  /* LayerStore layer_store; */
-  /* if (0 != layer_store_init(&layer_store)) { */
-  /*   fprintf(stderr, "Failed initializing the layer store, error(%d): [%s]",
-   * errno, */
-  /*           strerror(errno)); */
-  /*   goto out_destroy_gimli_directory_accessor; */
-  /* } */
+  LayerStore layer_store;
+  if (0 != layer_store_init(&layer_store)) {
+    fprintf(stderr, "Failed initializing the layer store, error(%d): [%s]",
+            errno, strerror(errno));
+    goto out_destroy_cli;
+  }
 
   ret = 0;
 

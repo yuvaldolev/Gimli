@@ -20,7 +20,7 @@ static int parse_string_argument(const char *argument, char **out) {
     return 1;
   }
 
-  memcpy(*out, argument, argument_size);
+  strncpy(*out, argument, argument_size);
 
   return 0;
 }
@@ -30,7 +30,7 @@ static int parse_string_array_argument(const char *const *argument, size_t size,
   int ret = 1;
 
   // Allocate the output array.
-  *out_array = malloc(size * sizeof(*(*out_array)));
+  *out_array = malloc(size * sizeof(**out_array));
   if (NULL == out_array) {
     goto out;
   }
@@ -55,12 +55,10 @@ out_free_array:
   // Free all allocated items.
   for (size_t item_index = 0; item_index < (*out_size); ++item_index) {
     free((*out_array)[item_index]);
-    (*out_array)[item_index] = NULL;
   }
 
   // Free the array.
   free(*out_array);
-  *out_array = NULL;
 
   // Set the array size to 0.
   *out_size = 0;
@@ -95,7 +93,6 @@ int cli_init(Cli *self, int argc, const char *const argv[]) {
 
 out_free_image:
   free(self->image);
-  self->image = NULL;
 
 out:
   return ret;
