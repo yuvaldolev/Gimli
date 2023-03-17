@@ -1,4 +1,4 @@
-#include "gimli_directory.h"
+#include "gimli/gimli_directory.h"
 
 #include <stdio.h>
 

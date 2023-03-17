@@ -1,4 +1,4 @@
-#include "cli.h"
+#include "gimli/cli.h"
 
 #include <stdio.h>
 #include <stdlib.h>

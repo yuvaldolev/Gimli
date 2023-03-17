@@ -1,11 +1,11 @@
-#include "layer.h"
+#include "gimli/layer.h"
 
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "io.h"
+#include "gimli/io.h"
 
 static int read_layer_property_file(const char *chain_id,
                                     const char *layer_store_directory,

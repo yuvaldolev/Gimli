@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cli.h"
-#include "layer_store.h"
+#include "gimli/cli.h"
+#include "gimli/layer_store.h"
+#include "stb_ds/stb_ds.h"
 
 int main(int argc, const char *const argv[]) {
   int ret = 1;
@@ -32,6 +33,15 @@ int main(int argc, const char *const argv[]) {
             errno, strerror(errno));
     goto out_destroy_cli;
   }
+
+  for (ptrdiff_t i = 0; i < shlen(layer_store.layers); ++i) {
+    LayerItem *item = &(layer_store.layers[i]);
+    printf("%s: Layer{ chain_id=%s, diff_id=%s, cache_id=%s }\n", item->key,
+           item->value.chain_id, item->value.diff_id, item->value.cache_id);
+  }
+
+  // TODO: Move to a cleanup label.
+  layer_store_destroy(&layer_store);
 
   ret = 0;
 

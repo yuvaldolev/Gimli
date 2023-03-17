@@ -4,11 +4,11 @@ project(gimli)
 
 add_executable(
     gimli
-    include/cli.h
-    include/gimli_directory.h
-    include/io.h
-    include/layer.h
-    include/layer_store.h
+    include/gimli/cli.h
+    include/gimli/gimli_directory.h
+    include/gimli/io.h
+    include/gimli/layer.h
+    include/gimli/layer_store.h
     src/cli.c
     src/gimli_directory.c
     src/io.c
@@ -21,6 +21,12 @@ target_include_directories(
     gimli
     PRIVATE
     include
+)
+
+target_link_libraries(
+    gimli
+    PRIVATE
+    stb_ds
 )
 
 set_target_properties(

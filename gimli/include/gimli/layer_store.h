@@ -2,8 +2,13 @@
 
 #include "layer.h"
 
+typedef struct LayerItem {
+  char *key;
+  Layer value;
+} LayerItem;
+
 typedef struct LayerStore {
-  Layer *layers;
+  LayerItem *layers;
 } LayerStore;
 
 int layer_store_init(LayerStore *self);

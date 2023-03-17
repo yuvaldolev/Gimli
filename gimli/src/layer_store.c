@@ -1,16 +1,20 @@
-#include "layer_store.h"
+#include "gimli/layer_store.h"
 
 #include <dirent.h>
 #include <errno.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "gimli_directory.h"
-#include "layer.h"
+#include "gimli/gimli_directory.h"
+#include "gimli/layer.h"
+#include "stb_ds/stb_ds.h"
 
 static int read_layer_store(LayerStore *self, const char *path,
                             DIR *directory) {
+  int ret = 1;
+
   for (;;) {
     // Set `errno` to 0 before reading the next directory entry.
     errno = 0;
@@ -20,7 +24,7 @@ static int read_layer_store(LayerStore *self, const char *path,
     if (NULL == entry) {
       // Check if an error occurred while reading the directory entry.
       if (0 != errno) {
-        return 1;
+        goto out_free_layers;
       }
 
       // Completed reading all directory entries.
@@ -41,16 +45,26 @@ static int read_layer_store(LayerStore *self, const char *path,
     // Read the layer information.
     Layer layer;
     if (0 != layer_init(&layer, entry->d_name, path)) {
-      return 1;
+      goto out_free_layers;
     }
 
-    printf("Layer{ chain_id=%s, diff_id=%s, cache_id=%s }\n", layer.chain_id,
-           layer.diff_id, layer.cache_id);
-
-    layer_destroy(&layer);
+    // Add the layer to the layers map.
+    shput(self->layers, layer.diff_id, layer);
   }
 
-  return 0;
+  ret = 0;
+  goto out;
+
+out_free_layers:
+  for (ptrdiff_t item_index = 0; item_index < shlen(self->layers);
+       ++item_index) {
+    layer_destroy(&(self->layers[item_index].value));
+  }
+
+  shfree(self->layers);
+
+out:
+  return ret;
 }
 
 int layer_store_init(LayerStore *self) {
@@ -82,4 +96,11 @@ out:
   return ret;
 }
 
-void layer_store_destroy(LayerStore *self) { (void)self; }
+void layer_store_destroy(LayerStore *self) {
+  for (ptrdiff_t item_index = 0; item_index < shlen(self->layers);
+       ++item_index) {
+    layer_destroy(&(self->layers[item_index].value));
+  }
+
+  shfree(self->layers);
+}
