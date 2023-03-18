@@ -16,34 +16,33 @@ int main(int argc, const char *const argv[]) {
     goto out;
   }
 
-  printf("Image: %s\n", cli.image);
-  printf("Command: [");
-  for (size_t index = 0; index < cli.command_size; ++index) {
-    printf("\"%s\"", cli.command[index]);
-    if ((cli.command_size - 1) > index) {
-      printf(", ");
-    }
-  }
-  printf("]\n");
-
   // Initialize the layer store.
   LayerStore layer_store;
   if (0 != layer_store_init(&layer_store)) {
-    fprintf(stderr, "Failed initializing the layer store, error(%d): [%s]",
-            errno, strerror(errno));
+    fprintf(stderr, "Failed initializing layer store, error(%d): [%s]\n", errno,
+            strerror(errno));
     goto out_destroy_cli;
   }
 
-  for (ptrdiff_t i = 0; i < shlen(layer_store.layers); ++i) {
-    LayerItem *item = &(layer_store.layers[i]);
-    printf("%s: Layer{ chain_id=%s, diff_id=%s, cache_id=%s }\n", item->key,
-           item->value.chain_id, item->value.diff_id, item->value.cache_id);
+  for (ptrdiff_t i = 0; i < shlen(layer_store.diff_id_to_layer); ++i) {
+    DiffIdToLayerPair *pair = &(layer_store.diff_id_to_layer[i]);
+    printf("%s: Layer{ chain_id=%s, diff_id=%s, cache_id=%s }\n", pair->key,
+           pair->value.chain_id, pair->value.diff_id, pair->value.cache_id);
   }
 
-  // TODO: Move to a cleanup label.
-  layer_store_destroy(&layer_store);
+  /* // Initialize the image store. */
+  /* ImageStore image_store; */
+  /* if (0 != image_store_init(&image_store)) { */
+  /*   fprintf(stderr, "Failed initializing image store, error(%d): [%s]\n",
+   * errno, */
+  /*           strerror(errno)); */
+  /*   goto out_destroy_layer_store; */
+  /* } */
 
   ret = 0;
+
+  /* out_destroy_layer_store: */
+  layer_store_destroy(&layer_store);
 
 out_destroy_cli:
   cli_destroy(&cli);

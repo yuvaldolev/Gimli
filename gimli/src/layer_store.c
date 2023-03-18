@@ -15,6 +15,9 @@ static int read_layer_store(LayerStore *self, const char *path,
                             DIR *directory) {
   int ret = 1;
 
+  // Reset the diff_id_to_layer hash map.
+  self->diff_id_to_layer = NULL;
+
   for (;;) {
     // Set `errno` to 0 before reading the next directory entry.
     errno = 0;
@@ -24,7 +27,7 @@ static int read_layer_store(LayerStore *self, const char *path,
     if (NULL == entry) {
       // Check if an error occurred while reading the directory entry.
       if (0 != errno) {
-        goto out_free_layers;
+        goto out_free_diff_id_to_layer;
       }
 
       // Completed reading all directory entries.
@@ -45,23 +48,23 @@ static int read_layer_store(LayerStore *self, const char *path,
     // Read the layer information.
     Layer layer;
     if (0 != layer_init(&layer, entry->d_name, path)) {
-      goto out_free_layers;
+      goto out_free_diff_id_to_layer;
     }
 
-    // Add the layer to the layers map.
-    shput(self->layers, layer.diff_id, layer);
+    // Add the layer to the diff_id_to_layer map.
+    shput(self->diff_id_to_layer, layer.diff_id, layer);
   }
 
   ret = 0;
   goto out;
 
-out_free_layers:
-  for (ptrdiff_t item_index = 0; item_index < shlen(self->layers);
+out_free_diff_id_to_layer:
+  for (ptrdiff_t item_index = 0; item_index < shlen(self->diff_id_to_layer);
        ++item_index) {
-    layer_destroy(&(self->layers[item_index].value));
+    layer_destroy(&(self->diff_id_to_layer[item_index].value));
   }
 
-  shfree(self->layers);
+  shfree(self->diff_id_to_layer);
 
 out:
   return ret;
@@ -97,10 +100,10 @@ out:
 }
 
 void layer_store_destroy(LayerStore *self) {
-  for (ptrdiff_t item_index = 0; item_index < shlen(self->layers);
-       ++item_index) {
-    layer_destroy(&(self->layers[item_index].value));
+  for (ptrdiff_t pair_index = 0; pair_index < shlen(self->diff_id_to_layer);
+       ++pair_index) {
+    layer_destroy(&(self->diff_id_to_layer[pair_index].value));
   }
 
-  shfree(self->layers);
+  shfree(self->diff_id_to_layer);
 }

@@ -2,13 +2,13 @@
 
 #include "layer.h"
 
-typedef struct LayerItem {
+typedef struct DiffIdToLayerPair {
   char *key;
   Layer value;
-} LayerItem;
+} DiffIdToLayerPair;
 
 typedef struct LayerStore {
-  LayerItem *layers;
+  DiffIdToLayerPair *diff_id_to_layer;
 } LayerStore;
 
 int layer_store_init(LayerStore *self);
