@@ -1,13 +1,20 @@
 #pragma once
 
-#include "gimi/image.h"
+#include "gimli/image.h"
 
-typedef struct RepositoryToImagePair {
+typedef struct ImageIdToImagePair {
   char *key;
-  Image *value;
-} RepositoryToImagePair;
+  Image value;
+} ImageIdToImagePair;
+
+typedef struct RepositoryToImageIdPair {
+  char *key;
+  char *value;
+} RepositoryToImageIdPair;
 
 typedef struct ImageStore {
-  Image *images;
-  RepositoryToImagePair *repository_to_image;
+  ImageIdToImagePair *image_id_to_image;
+  RepositoryToImageIdPair *repository_to_image_id;
 } ImageStore;
+
+int image_store_init(ImageStore *self);

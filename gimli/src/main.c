@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "gimli/cli.h"
+#include "gimli/image_store.h"
 #include "gimli/layer_store.h"
 #include "stb_ds/stb_ds.h"
 

@@ -30,6 +30,7 @@ target_include_directories(
 target_link_libraries(
     gimli
     PRIVATE
+    jansson
     stb_ds
 )
 
@@ -45,4 +46,5 @@ target_compile_options(
     -Weverything
     -Werror
     -Wno-declaration-after-statement
+    -Wno-padded
 )
