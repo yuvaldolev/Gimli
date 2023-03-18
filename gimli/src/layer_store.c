@@ -51,7 +51,7 @@ static int read_layer_store(LayerStore *self, const char *path,
       goto out_free_diff_id_to_layer;
     }
 
-    // Add the layer to the diff_id_to_layer map.
+    // Add the layer to the diff ID to layer map.
     shput(self->diff_id_to_layer, layer.diff_id, layer);
   }
 

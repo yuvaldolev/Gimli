@@ -6,13 +6,15 @@ add_executable(
     gimli
     include/gimli/cli.h
     include/gimli/gimli_directory.h
-    # include/gimli/image_store.h
+    include/gimli/image.h
+    include/gimli/image_store.h
     include/gimli/io.h
     include/gimli/layer.h
     include/gimli/layer_store.h
     src/cli.c
     src/gimli_directory.c
-    # src/image_store.c
+    src/image.c
+    src/image_store.c
     src/io.c
     src/layer.c
     src/layer_store.c

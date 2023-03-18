@@ -1,6 +1,6 @@
 #pragma once
 
-#include "layer.h"
+#include "gimli/layer.h"
 
 typedef struct DiffIdToLayerPair {
   char *key;
