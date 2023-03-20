@@ -32,7 +32,7 @@ static int read_all(int fd, void *buffer, size_t size) {
   return 0;
 }
 
-int file_to_string(const char *path, char **out_data) {
+int io_file_to_string(const char *path, char **out_data) {
   int ret = 1;
 
   // Open the file.

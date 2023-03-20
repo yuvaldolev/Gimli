@@ -45,6 +45,7 @@ target_compile_options(
     PRIVATE
     -Weverything
     -Werror
+    -Wno-cast-qual
     -Wno-declaration-after-statement
     -Wno-padded
 )

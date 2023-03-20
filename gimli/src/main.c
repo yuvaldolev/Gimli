@@ -33,7 +33,33 @@ int main(int argc, const char *const argv[]) {
     goto out_destroy_layer_store;
   }
 
+  for (ptrdiff_t repository_to_id_pair_index = 0;
+       repository_to_id_pair_index < shlen(image_store.repository_to_id);
+       ++repository_to_id_pair_index) {
+    const char *repository =
+        image_store.repository_to_id[repository_to_id_pair_index].key;
+    const char *id =
+        image_store.repository_to_id[repository_to_id_pair_index].value;
+    Image *image =
+        &(image_store.id_to_image[shgeti(image_store.id_to_image, id)].value);
+
+    printf("%s: Image{ id=%s, layers=[", repository, image->id);
+
+    for (size_t layer_index = 0; layer_index < image->layers_size;
+         ++layer_index) {
+      printf("%s", image->layers[layer_index]);
+
+      if (layer_index < (image->layers_size - 1)) {
+        printf(", ");
+      }
+    }
+
+    printf("] }\n");
+  }
+
   ret = 0;
+
+  image_store_destroy(&image_store);
 
 out_destroy_layer_store:
   layer_store_destroy(&layer_store);

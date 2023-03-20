@@ -2,19 +2,21 @@
 
 #include "gimli/image.h"
 
-typedef struct ImageIdToImagePair {
+typedef struct IdToImagePair {
   char *key;
   Image value;
-} ImageIdToImagePair;
+} IdToImagePair;
 
-typedef struct RepositoryToImageIdPair {
+typedef struct RepositoryToIdPair {
   char *key;
   char *value;
-} RepositoryToImageIdPair;
+} RepositoryToIdPair;
 
 typedef struct ImageStore {
-  ImageIdToImagePair *image_id_to_image;
-  RepositoryToImageIdPair *repository_to_image_id;
+  IdToImagePair *id_to_image;
+  RepositoryToIdPair *repository_to_id;
 } ImageStore;
 
 int image_store_init(ImageStore *self);
+
+void image_store_destroy(ImageStore *self);

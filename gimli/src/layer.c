@@ -17,7 +17,7 @@ static int read_layer_property_file(const char *chain_id,
            property_file_name);
 
   // Read the file.
-  if (0 != file_to_string(path, out_data)) {
+  if (0 != io_file_to_string(path, out_data)) {
     return 1;
   }
 
@@ -28,23 +28,19 @@ int layer_init(Layer *self, const char *chain_id,
                const char *layer_store_directory) {
   int ret = 1;
 
-  // Initialize the layer's chain ID.
-  size_t chain_id_size = strlen(chain_id) + 1;
-
-  self->chain_id = malloc(chain_id_size);
+  // Initialize the chain ID.
+  self->chain_id = strdup(chain_id);
   if (NULL == self->chain_id) {
     goto out;
   }
 
-  strncpy(self->chain_id, chain_id, chain_id_size);
-
-  // Read the layer's diff ID.
+  // Read the diff ID.
   if (0 != read_layer_property_file(chain_id, layer_store_directory, "diff",
                                     &self->diff_id)) {
     goto out_free_chain_id;
   }
 
-  // Read the layer's cache ID.
+  // Read the cache ID.
   if (0 != read_layer_property_file(chain_id, layer_store_directory, "cache-id",
                                     &self->cache_id)) {
     goto out_free_diff_id;

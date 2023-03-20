@@ -15,7 +15,8 @@ static int read_layer_store(LayerStore *self, const char *path,
                             DIR *directory) {
   int ret = 1;
 
-  // Reset the diff_id_to_layer hash map.
+  // Reset the diff ID to layer map (required to be initialized to NULL by
+  // stb_ds).
   self->diff_id_to_layer = NULL;
 
   for (;;) {
@@ -59,9 +60,9 @@ static int read_layer_store(LayerStore *self, const char *path,
   goto out;
 
 out_free_diff_id_to_layer:
-  for (ptrdiff_t item_index = 0; item_index < shlen(self->diff_id_to_layer);
-       ++item_index) {
-    layer_destroy(&(self->diff_id_to_layer[item_index].value));
+  for (ptrdiff_t pair_index = 0; pair_index < shlen(self->diff_id_to_layer);
+       ++pair_index) {
+    layer_destroy(&(self->diff_id_to_layer[pair_index].value));
   }
 
   shfree(self->diff_id_to_layer);
