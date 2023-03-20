@@ -11,6 +11,7 @@ add_executable(
     include/gimli/io.h
     include/gimli/layer.h
     include/gimli/layer_store.h
+    include/gimli/uuid.h
     src/cli.c
     src/gimli_directory.c
     src/image.c
@@ -19,6 +20,7 @@ add_executable(
     src/layer.c
     src/layer_store.c
     src/main.c
+    src/uuid.c
 )
 
 target_include_directories(

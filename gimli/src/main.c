@@ -1,14 +1,20 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "gimli/cli.h"
 #include "gimli/image_store.h"
 #include "gimli/layer_store.h"
+#include "gimli/uuid.h"
 #include "stb_ds/stb_ds.h"
 
 int main(int argc, const char *const argv[]) {
   int ret = 1;
+
+  // Initialize the random seed.
+  srand((unsigned int)(time(NULL)));
 
   // Parse the command line arguments.
   Cli cli;
@@ -18,47 +24,43 @@ int main(int argc, const char *const argv[]) {
   }
 
   // Initialize the layer store.
+  printf("=> initializing layer store... ");
+
   LayerStore layer_store;
   if (0 != layer_store_init(&layer_store)) {
-    fprintf(stderr, "Failed initializing layer store, error(%d): [%s]\n", errno,
-            strerror(errno));
+    printf("failed, error(%d): [%s]\n", errno, strerror(errno));
     goto out_destroy_cli;
   }
 
+  printf("done\n");
+
   // Initialize the image store.
+  printf("=> initializing image store... ");
+
   ImageStore image_store;
   if (0 != image_store_init(&image_store)) {
-    fprintf(stderr, "Failed initializing image store, error(%d): [%s]\n", errno,
-            strerror(errno));
+    printf("failed, error(%d): [%s]\n", errno, strerror(errno));
     goto out_destroy_layer_store;
   }
 
-  for (ptrdiff_t repository_to_id_pair_index = 0;
-       repository_to_id_pair_index < shlen(image_store.repository_to_id);
-       ++repository_to_id_pair_index) {
-    const char *repository =
-        image_store.repository_to_id[repository_to_id_pair_index].key;
-    const char *id =
-        image_store.repository_to_id[repository_to_id_pair_index].value;
-    Image *image =
-        &(image_store.id_to_image[shgeti(image_store.id_to_image, id)].value);
+  printf("done\n");
 
-    printf("%s: Image{ id=%s, layers=[", repository, image->id);
+  // Generate the container hostname.
+  printf("=> generating container hostname... ");
 
-    for (size_t layer_index = 0; layer_index < image->layers_size;
-         ++layer_index) {
-      printf("%s", image->layers[layer_index]);
-
-      if (layer_index < (image->layers_size - 1)) {
-        printf(", ");
-      }
-    }
-
-    printf("] }\n");
+  char *container_hostname;
+  if (0 != uuid_generate(&container_hostname)) {
+    printf("failed, error(%d): [%s]\n", errno, strerror(errno));
+    goto out_destroy_image_store;
   }
+
+  printf("%s... done\n", container_hostname);
 
   ret = 0;
 
+  free(container_hostname);
+
+out_destroy_image_store:
   image_store_destroy(&image_store);
 
 out_destroy_layer_store:
