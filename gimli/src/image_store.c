@@ -240,3 +240,22 @@ void image_store_destroy(ImageStore *self) {
 
   shfree(self->id_to_image);
 }
+
+Image *image_store_get_image_by_repository(ImageStore *self,
+                                           const char *repository) {
+  // Find the image ID by the repository.
+  ptrdiff_t repository_pair_index = shgeti(self->repository_to_id, repository);
+  if (-1 == repository_pair_index) {
+    return NULL;
+  }
+
+  const char *id = self->repository_to_id[repository_pair_index].value;
+
+  // Find the image by the ID.
+  ptrdiff_t id_pair_index = shgeti(self->id_to_image, id);
+  if (-1 == id_pair_index) {
+    return NULL;
+  }
+
+  return &(self->id_to_image[id_pair_index].value);
+}

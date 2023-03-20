@@ -20,3 +20,6 @@ typedef struct ImageStore {
 int image_store_init(ImageStore *self);
 
 void image_store_destroy(ImageStore *self);
+
+Image *image_store_get_image_by_repository(ImageStore *self,
+                                           const char *repository);
