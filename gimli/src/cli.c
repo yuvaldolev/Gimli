@@ -30,7 +30,10 @@ static int parse_string_array_argument(const char *const *argument, size_t size,
   int ret = 1;
 
   // Allocate the output array.
-  *out_array = malloc(size * sizeof(**out_array));
+  // Allocate an extra item to place a NULL item at the end of the array.
+  // This is useful for use-cases that use a null terminator to determine
+  // when an array is terminated.
+  *out_array = malloc((size + 1) * sizeof(**out_array));
   if (NULL == out_array) {
     goto out;
   }
@@ -47,6 +50,9 @@ static int parse_string_array_argument(const char *const *argument, size_t size,
 
     ++(*out_size);
   }
+
+  // Set the last array item to NULL.
+  (*out_array)[size] = NULL;
 
   ret = 0;
   goto out;
@@ -111,5 +117,5 @@ void cli_destroy(Cli *self) {
 }
 
 void cli_print_usage(const char *program) {
-  fprintf(stderr, "USAGE: %s <image> <command>...\n", program);
+  printf("USAGE: %s <image> <command>...\n", program);
 }
