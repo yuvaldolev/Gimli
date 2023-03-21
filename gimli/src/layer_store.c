@@ -108,3 +108,13 @@ void layer_store_destroy(LayerStore *self) {
 
   shfree(self->diff_id_to_layer);
 }
+
+Layer *layer_store_get_layer_by_diff_id(LayerStore *self, const char *diff_id) {
+  // Find the layer by the diff ID.
+  ptrdiff_t id_pair_index = shgeti(self->diff_id_to_layer, diff_id);
+  if (-1 == id_pair_index) {
+    return NULL;
+  }
+
+  return &(self->diff_id_to_layer[id_pair_index].value);
+}

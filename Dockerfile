@@ -10,6 +10,14 @@ RUN /app/build.sh
 
 FROM debian:bullseye
 
+COPY data/gimli.tar.gz /var/lib/
+
+RUN mkdir /var/lib/gimli
+
+RUN tar -C /var/lib/gimli -xzf /var/lib/gimli.tar.gz
+
+RUN rm /var/lib/gimli.tar.gz
+
 COPY --from=builder /app/build/gimli/gimli /app/gimli
 
 WORKDIR /app

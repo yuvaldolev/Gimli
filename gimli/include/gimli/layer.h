@@ -4,6 +4,7 @@ typedef struct Layer {
   char *chain_id;
   char *diff_id;
   char *cache_id;
+  char *link_path;
 } Layer;
 
 int layer_init(Layer *self, const char *chain_id,

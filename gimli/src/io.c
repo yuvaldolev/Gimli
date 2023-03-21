@@ -1,13 +1,26 @@
 #include "gimli/io.h"
 
+#define _XOPEN_SOURCE 500
+
 #include <errno.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+static int nftw_remove(const char *path,
+                       const struct stat *stat_buffer __attribute__((unused)),
+                       int type __attribute__((unused)),
+                       struct FTW *ftw_buffer __attribute__((unused))) {
+  remove(path);
+
+  return 0;
+}
 
 static int read_all(int fd, void *buffer, size_t size) {
   uint8_t *cursor = buffer;
@@ -70,4 +83,8 @@ out_close_fd:
 
 out:
   return ret;
+}
+
+void io_remove_directory_recursive(const char *path) {
+  nftw(path, nftw_remove, 64, FTW_DEPTH | FTW_PHYS);
 }

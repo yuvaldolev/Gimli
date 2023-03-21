@@ -14,3 +14,5 @@ typedef struct LayerStore {
 int layer_store_init(LayerStore *self);
 
 void layer_store_destroy(LayerStore *self);
+
+Layer *layer_store_get_layer_by_diff_id(LayerStore *self, const char *diff_id);
