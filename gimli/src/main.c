@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <errno.h>
+#include <libgen.h>
 #include <limits.h>
 #include <sched.h>
 #include <signal.h>
@@ -11,6 +12,7 @@
 #include <string.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -28,6 +30,7 @@
 typedef struct ContainerConfiguration {
   Image *image;
   char *directory;
+  char *root_fs_directory;
   char *hostname;
   char **command;
   LayerStore *layer_store;
@@ -39,19 +42,11 @@ static const char *LOWERDIR_MOUNT_DATA_PREFIX = "lowerdir=";
 static const char *UPPERDIR_MOUNT_DATA_PREFIX = "upperdir=";
 static const char *WORKDIR_MOUNT_DATA_PREFIX = "workdir=";
 
-static int mount_container_image(const Image *image, const char *directory,
+static int setup_image_overlayfs(const Image *image, const char *directory,
+                                 const char *merged_directory,
                                  LayerStore *layer_store) {
   int ret = 1;
 
-  (void)image;
-  (void)directory;
-
-  // Remount everything as private.
-  if (0 != mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL)) {
-    goto out;
-  }
-
-  // Setup the image overlayfs.
   // Create the upperdir.
   char upperdir[PATH_MAX];
   snprintf(upperdir, sizeof(upperdir), "%s/diff", directory);
@@ -63,13 +58,6 @@ static int mount_container_image(const Image *image, const char *directory,
   char workdir[PATH_MAX];
   snprintf(workdir, sizeof(workdir), "%s/work", directory);
   if (0 != mkdir(workdir, 0755)) {
-    goto out;
-  }
-
-  // Create the merged directory.
-  char merged_directory[PATH_MAX];
-  snprintf(merged_directory, sizeof(merged_directory), "%s/merged", directory);
-  if (0 != mkdir(merged_directory, 0755)) {
     goto out;
   }
 
@@ -115,7 +103,7 @@ static int mount_container_image(const Image *image, const char *directory,
   // Allocate the mount data string.
   char *mount_data = malloc(mount_data_size);
   if (NULL == mount_data) {
-    return 1;
+    goto out;
   }
 
   // Format the lowerdir mount data.
@@ -167,7 +155,6 @@ static int mount_container_image(const Image *image, const char *directory,
   *cursor = '\0';
 
   // Perform the overlayfs mount.
-  printf("Mount data: %s\n", mount_data);
   if (0 != mount("overlay", merged_directory, "overlay", 0, mount_data)) {
     goto out_free_mount_data;
   }
@@ -179,6 +166,89 @@ out_free_mount_data:
 
 out:
   return ret;
+}
+
+static int drop_capabilities() {
+  int drop_caps[] = {
+      CAP_AUDIT_CONTROL,   CAP_AUDIT_READ,   CAP_AUDIT_WRITE, CAP_BLOCK_SUSPEND,
+      CAP_DAC_READ_SEARCH, CAP_FSETID,       CAP_IPC_LOCK,    CAP_MAC_ADMIN,
+      CAP_MAC_OVERRIDE,    CAP_MKNOD,        CAP_SETFCAP,     CAP_SYSLOG,
+      CAP_SYS_ADMIN,       CAP_SYS_BOOT,     CAP_SYS_MODULE,  CAP_SYS_NICE,
+      CAP_SYS_RAWIO,       CAP_SYS_RESOURCE, CAP_SYS_TIME,    CAP_WAKE_ALARM};
+  size_t num_caps = sizeof(drop_caps) / sizeof(*drop_caps);
+
+  for (size_t i = 0; i < num_caps; i++) {
+    if (prctl(PR_CAPBSET_DROP, drop_caps[i], 0, 0, 0)) {
+      fprintf(stderr, "prctl failed: %m\n");
+      return 1;
+    }
+  }
+  fprintf(stderr, "inheritable...");
+  cap_t caps = NULL;
+  if (!(caps = cap_get_proc()) ||
+      cap_set_flag(caps, CAP_INHERITABLE, num_caps, drop_caps, CAP_CLEAR) ||
+      cap_set_proc(caps)) {
+    fprintf(stderr, "failed: %m\n");
+    if (caps) cap_free(caps);
+    return 1;
+  }
+  cap_free(caps);
+  fprintf(stderr, "done.\n");
+  return 0;
+}
+
+static int mount_container_image(const Image *image, const char *directory,
+                                 const char *root_fs_directory,
+                                 LayerStore *layer_store) {
+  // Remount everything as private.
+  if (0 != mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL)) {
+    return 1;
+  }
+
+  // Create the merged directory.
+  if (0 != mkdir(root_fs_directory, 0755)) {
+    return 1;
+  }
+
+  // Setup the image overlayfs.
+  if (0 !=
+      setup_image_overlayfs(image, directory, root_fs_directory, layer_store)) {
+    return 1;
+  }
+
+  // Create a temporary directory to move the old root directory to.
+  char old_root_fs_directory[PATH_MAX];
+  snprintf(old_root_fs_directory, sizeof(old_root_fs_directory), "%s/old_root",
+           root_fs_directory);
+
+  if (0 != mkdir(old_root_fs_directory, 0755)) {
+    return 1;
+  }
+
+  // Pivot to the merged directory.
+  if (0 != syscall(SYS_pivot_root, root_fs_directory, old_root_fs_directory)) {
+    return 1;
+  }
+
+  // Change directory to the newly pivoted root directory,
+  if (0 != chdir("/")) {
+    return 1;
+  }
+
+  // Unmount the old root directory.
+  // The basename of the old root directory is retrieved here, as the root
+  // directory has been pivoted.
+  char *old_root_fs_directory_name = basename(old_root_fs_directory);
+  if (0 != umount2(old_root_fs_directory_name, MNT_DETACH)) {
+    return 1;
+  }
+
+  // Remove the old root directory.
+  if (0 != rmdir(old_root_fs_directory_name)) {
+    return 1;
+  }
+
+  return 0;
 }
 
 static int child(void *argument) {
@@ -200,7 +270,18 @@ static int child(void *argument) {
 
   if (0 != mount_container_image(container_configuration->image,
                                  container_configuration->directory,
+                                 container_configuration->root_fs_directory,
                                  container_configuration->layer_store)) {
+    printf("failed, error(%d): [%s]\n", errno, strerror(errno));
+    return 1;
+  }
+
+  printf("done\n");
+
+  // Drop capabilities.
+  printf("=> dropping capabilities... ");
+
+  if (0 != drop_capabilities()) {
     printf("failed, error(%d): [%s]\n", errno, strerror(errno));
     return 1;
   }
@@ -215,6 +296,7 @@ static int child(void *argument) {
   // Exit with failure.
   printf("failed executing user command, error(%d): [%s]\n", errno,
          strerror(errno));
+
   return 1;
 }
 
@@ -290,6 +372,10 @@ int main(int argc, const char *const argv[]) {
     goto out_free_container_hostname;
   }
 
+  char root_fs_directory[PATH_MAX];
+  snprintf(root_fs_directory, sizeof(root_fs_directory), "%s/merged",
+           container_directory);
+
   printf("done\n");
 
   // Setup the container configuration.
@@ -298,6 +384,7 @@ int main(int argc, const char *const argv[]) {
   ContainerConfiguration container_configuration = {
       .image = container_image,
       .directory = container_directory,
+      .root_fs_directory = root_fs_directory,
       .hostname = container_hostname,
       .command = cli.command,
       .layer_store = &layer_store,
@@ -344,6 +431,10 @@ out_free_clone_stack:
   free(clone_stack);
 
 out_remove_container_directory:
+  // Try unmounting the root directory of the container's file system.
+  umount(root_fs_directory);
+
+  // Remove the container directory.
   io_remove_directory_recursive(container_directory);
 
 out_free_container_hostname:
