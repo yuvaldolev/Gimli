@@ -168,34 +168,51 @@ out:
   return ret;
 }
 
-static int drop_capabilities() {
-  int drop_caps[] = {
-      CAP_AUDIT_CONTROL,   CAP_AUDIT_READ,   CAP_AUDIT_WRITE, CAP_BLOCK_SUSPEND,
-      CAP_DAC_READ_SEARCH, CAP_FSETID,       CAP_IPC_LOCK,    CAP_MAC_ADMIN,
-      CAP_MAC_OVERRIDE,    CAP_MKNOD,        CAP_SETFCAP,     CAP_SYSLOG,
-      CAP_SYS_ADMIN,       CAP_SYS_BOOT,     CAP_SYS_MODULE,  CAP_SYS_NICE,
-      CAP_SYS_RAWIO,       CAP_SYS_RESOURCE, CAP_SYS_TIME,    CAP_WAKE_ALARM};
-  size_t num_caps = sizeof(drop_caps) / sizeof(*drop_caps);
-
-  for (size_t i = 0; i < num_caps; i++) {
-    if (prctl(PR_CAPBSET_DROP, drop_caps[i], 0, 0, 0)) {
-      fprintf(stderr, "prctl failed: %m\n");
-      return 1;
-    }
-  }
-  fprintf(stderr, "inheritable...");
-  cap_t caps = NULL;
-  if (!(caps = cap_get_proc()) ||
-      cap_set_flag(caps, CAP_INHERITABLE, num_caps, drop_caps, CAP_CLEAR) ||
-      cap_set_proc(caps)) {
+#if 0
+static int filter_syscalls() {
+  scmp_filter_ctx ctx = NULL;
+  fprintf(stderr, "=> filtering syscalls...");
+  if (!(ctx = seccomp_init(SCMP_ACT_ALLOW)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(chmod), 1,
+                       SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(chmod), 1,
+                       SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(fchmod), 1,
+                       SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(fchmod), 1,
+                       SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(fchmodat), 1,
+                       SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(fchmodat), 1,
+                       SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID)) ||
+      seccomp_rule_add(
+          ctx, SCMP_FAIL, SCMP_SYS(unshare), 1,
+          SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)) ||
+      seccomp_rule_add(
+          ctx, SCMP_FAIL, SCMP_SYS(clone), 1,
+          SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(ioctl), 1,
+                       SCMP_A1(SCMP_CMP_MASKED_EQ, TIOCSTI, TIOCSTI)) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(keyctl), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(add_key), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(request_key), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(ptrace), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(mbind), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(migrate_pages), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(move_pages), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(set_mempolicy), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(userfaultfd), 0) ||
+      seccomp_rule_add(ctx, SCMP_FAIL, SCMP_SYS(perf_event_open), 0) ||
+      seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0) || seccomp_load(ctx)) {
+    if (ctx) seccomp_release(ctx);
     fprintf(stderr, "failed: %m\n");
-    if (caps) cap_free(caps);
     return 1;
   }
-  cap_free(caps);
+  seccomp_release(ctx);
   fprintf(stderr, "done.\n");
   return 0;
 }
+#endif
 
 static int mount_container_image(const Image *image, const char *directory,
                                  const char *root_fs_directory,
@@ -248,6 +265,11 @@ static int mount_container_image(const Image *image, const char *directory,
     return 1;
   }
 
+  // Mount `/proc`.
+  if (0 != mount("proc", "/proc", "proc", 0, NULL)) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -279,12 +301,14 @@ static int child(void *argument) {
   printf("done\n");
 
   // Drop capabilities.
-  printf("=> dropping capabilities... ");
+  printf("=> filtering syscalls... ");
 
-  if (0 != drop_capabilities()) {
+#if 0
+  if (0 != filter_syscalls()) {
     printf("failed, error(%d): [%s]\n", errno, strerror(errno));
     return 1;
   }
+#endif
 
   printf("done\n");
 
